@@ -1,6 +1,7 @@
 const Deal = require("../models/Deal");
 const Property = require("../models/Property");
 const DealActivity = require("../models/DealActivity");
+const { createAutoFollowUpTask } = require("./taskService");
 
 const VALID_STAGES = [
     "new_prospect",
@@ -50,6 +51,8 @@ const moveDealToStage = async (dealId, newStage, userId) => {
         notes: `Moved from "${previousStage}" to "${newStage}"`,
         loggedBy: userId,
     });
+
+    await createAutoFollowUpTask(deal, userId);
 
     return deal;
 };

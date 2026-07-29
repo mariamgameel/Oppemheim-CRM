@@ -1,6 +1,6 @@
 const express = require("express");
 const protect = require("../middlewares/authMiddleware");
-const aurhorizeRoles = require("../middlewares/rbacMiddleware");
+const authorizeRoles = require("../middlewares/rbacMiddleware");
 const { createBuilding, getBuildings } = require("../controllers/buildingController");
 const router = express.Router();
 
