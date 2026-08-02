@@ -5,6 +5,7 @@ const Property = require("./Property");
 const Deal = require("./Deal");
 const DealActivity = require("./DealActivity");
 const Task = require("./Task");
+const Listing = require("./Listing");
 
 
 module.exports = {
@@ -15,4 +16,5 @@ module.exports = {
     Deal,
     DealActivity,
     Task,
+    Listing,
 };

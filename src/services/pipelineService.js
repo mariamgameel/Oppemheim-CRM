@@ -1,7 +1,10 @@
 const Deal = require("../models/Deal");
 const Property = require("../models/Property");
 const DealActivity = require("../models/DealActivity");
+const Listing = require("../models/Listing");
 const { createAutoFollowUpTask } = require("./taskService");
+const { takeDownFromChannel } = require("./publishingService");
+const AppError = require("../utils/AppError");
 
 const VALID_STAGES = [
     "new_prospect",
@@ -14,16 +17,12 @@ const VALID_STAGES = [
 
 const moveDealToStage = async (dealId, newStage, userId) => {
     if (!VALID_STAGES.includes(newStage)) {
-        const err = new Error(`Invalid stage: ${newStage}`);
-        err.statusCode = 400;
-        throw err;
+        throw new AppError(`Invalid stage: ${newStage}`, 400);
     }
 
     const deal = await Deal.findById(dealId);
     if (!deal) {
-        const err = new Error("Deal not found");
-        err.statusCode = 404;
-        throw err;
+        throw new AppError("Deal not found", 404);
     }
 
     const previousStage = deal.stage;
@@ -31,18 +30,32 @@ const moveDealToStage = async (dealId, newStage, userId) => {
 
     if (newStage === "closed") {
         deal.isClosed = true;
+
         const updatedProperty = await Property.findOneAndUpdate(
             { _id: deal.property, status: { $nin: ["sold", "rented"] } },
             { status: deal.dealType === "rental" ? "rented" : "sold" },
             { new: true }
         );
+
         if (!updatedProperty) {
-            const err = new Error("Property was already sold/rented - cannot close this deal");
-            err.statusCode = 409;
-            throw err;
+            throw new AppError("Property was already sold/rented - cannot close this deal", 409);
+        }
+
+        const listing = await Listing.findOne({ property: deal.property, isActive: true });
+        if (listing) {
+            const publishedChannels = listing.channels.filter((c) => c.status === "published");
+            const results = await Promise.all(
+                publishedChannels.map((c) => takeDownFromChannel(c.channel, c.externalListingId))
+            );
+            results.forEach((result) => {
+                const idx = listing.channels.findIndex((c) => c.channel === result.channel);
+                if (idx >= 0) listing.channels[idx] = { ...listing.channels[idx].toObject(), ...result };
+            });
+            listing.isActive = false;
+            await listing.save();
         }
     }
-
+    
     await deal.save();
 
     await DealActivity.create({
