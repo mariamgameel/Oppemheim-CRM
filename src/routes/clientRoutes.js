@@ -1,6 +1,8 @@
 const express = require("express");
 const protect = require("../middlewares/authMiddleware");
 const authorizeRoles = require("../middlewares/rbacMiddleware");
+const validate = require("../middlewares/validate");
+const { createClientSchema, updateClientSchema } = require("../validators/clientValidators");
 const {
     createClient,
     getClients,
@@ -13,10 +15,10 @@ const router = express.Router();
 
 router.use(protect);
 
-router.post("/", createClient);
+router.post("/", validate(createClientSchema), createClient);
 router.get("/", getClients);
 router.get("/:id", getClientById);
-router.put("/:id", updateClient);
+router.put("/:id", validate(updateClientSchema), updateClient);
 router.delete("/:id", authorizeRoles("admin", "team_lead"), deleteClient);
 
 module.exports = router;

@@ -1,6 +1,12 @@
 const express = require("express");
 const protect = require("../middlewares/authMiddleware");
 const authorizeRoles = require("../middlewares/rbacMiddleware");
+const validate = require("../middlewares/validate");
+const {
+    createPropertySchema,
+    updatePropertySchema,
+    updatePropertyStatusSchema,
+} = require("../validators/propertyValidators");
 const {
     createProperty,
     getProperties,
@@ -13,11 +19,11 @@ const router = express.Router();
 
 router.use(protect);
 
-router.post("/", createProperty);
+router.post("/", validate(createPropertySchema), createProperty);
 router.get("/", getProperties);
 router.get("/:id", getPropertyById);
-router.put("/:id", updateProperty);
-router.patch("/:id/status", updatePropertyStatus);
+router.put("/:id", validate(updatePropertySchema), updateProperty);
+router.patch("/:id/status", validate(updatePropertyStatusSchema), updatePropertyStatus);
 router.delete("/:id", authorizeRoles("admin", "team_lead"), deleteProperty);
 
 module.exports = router;
